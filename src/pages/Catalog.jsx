@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCartStore } from '../store/cartStore';
+import { db } from '../lib/firebase';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 
 export default function Catalog() {
   const [products, setProducts] = useState([]);
@@ -7,16 +9,23 @@ export default function Catalog() {
   const addItem = useCartStore((state) => state.addItem);
 
   useEffect(() => {
-    fetch('/api/products')
-      .then(res => res.json())
-      .then(data => {
-        setProducts(data);
+    const fetchProducts = async () => {
+      try {
+        const q = query(collection(db, 'products'), orderBy('name'));
+        const querySnapshot = await getDocs(q);
+        const productsList = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setProducts(productsList);
+      } catch (err) {
+        console.error('Failed to fetch products from Firestore', err);
+      } finally {
         setLoading(false);
-      })
-      .catch(err => {
-        console.error('Failed to fetch products', err);
-        setLoading(false);
-      });
+      }
+    };
+
+    fetchProducts();
   }, []);
 
   if (loading) {

@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCartStore } from '../store/cartStore';
 import { useAuthStore } from '../store/authStore';
+import { db } from '../lib/firebase';
+import { collection, addDoc } from 'firebase/firestore';
 import { Trash2, Plus, Minus, CheckSquare, ShieldCheck } from 'lucide-react';
 
 export default function Checkout() {
@@ -22,21 +24,16 @@ export default function Checkout() {
 
     setLoading(true);
     try {
-      const res = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customer_name: user.name,
-          customer_email: user.email,
-          total: total,
-          items: items
-        })
+      const docRef = await addDoc(collection(db, 'orders'), {
+        customer_name: user.name,
+        customer_email: user.email,
+        total: total,
+        items: items,
+        status: 'pending',
+        createdAt: new Date().toISOString()
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-
-      setOrderId(data.id);
+      setOrderId(docRef.id);
       setSuccess(true);
       clearCart();
     } catch (err) {

@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { auth, db } from '../lib/firebase';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 
 export default function Register() {
   const [name, setName] = useState('');
@@ -12,19 +15,33 @@ export default function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     try {
-      const res = await fetch('/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+      // Criar usuário no Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Atualizar nome no perfil
+      await updateProfile(user, { displayName: name });
+
+      // Salvar dados adicionais no Firestore
+      await setDoc(doc(db, 'users', user.uid), {
+        name,
+        email,
+        createdAt: new Date().toISOString(),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
       
-      login(data.user, data.token);
+      const userData = { id: user.uid, name, email: user.email };
+      const token = await user.getIdToken();
+      
+      login(userData, token);
       navigate('/catalog');
     } catch (err) {
-      setError(err.message);
+      console.error(err);
+      let message = 'Erro ao criar conta';
+      if (err.code === 'auth/email-already-in-use') message = 'E-mail já cadastrado';
+      if (err.code === 'auth/weak-password') message = 'Senha muito fraca (mínimo 6 caracteres)';
+      setError(message);
     }
   };
 

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { auth } from '../lib/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -11,19 +13,22 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     try {
-      const res = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
       
-      login(data.user, data.token);
+      const userData = { id: user.uid, name: user.displayName, email: user.email };
+      const token = await user.getIdToken();
+      
+      login(userData, token);
       navigate('/catalog');
     } catch (err) {
-      setError(err.message);
+      console.error(err);
+      let message = 'E-mail ou senha inválidos';
+      if (err.code === 'auth/user-not-found') message = 'Usuário não encontrado';
+      if (err.code === 'auth/wrong-password') message = 'Senha incorreta';
+      setError(message);
     }
   };
 
