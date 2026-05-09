@@ -11,7 +11,7 @@ export default function Home() {
   const [direction, setDirection] = useState(1); // 1 = right, -1 = left
 
   useEffect(() => {
-    fetch('http://localhost:3001/api/products')
+    fetch('/api/products')
       .then(res => res.json())
       .then(data => {
         if(data && data.length > 0) {

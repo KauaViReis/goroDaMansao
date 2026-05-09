@@ -7,7 +7,7 @@ export default function Catalog() {
   const addItem = useCartStore((state) => state.addItem);
 
   useEffect(() => {
-    fetch('http://localhost:3001/api/products')
+    fetch('/api/products')
       .then(res => res.json())
       .then(data => {
         setProducts(data);
