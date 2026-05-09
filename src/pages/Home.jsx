@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import TechSpecs from '../components/TechSpecs';
 import TerminalFaq from '../components/TerminalFaq';
+import { db } from '../lib/firebase';
+import { collection, getDocs, query, limit } from 'firebase/firestore';
 
 export default function Home() {
   const [products, setProducts] = useState([]);
@@ -11,14 +13,23 @@ export default function Home() {
   const [direction, setDirection] = useState(1); // 1 = right, -1 = left
 
   useEffect(() => {
-    fetch('/api/products')
-      .then(res => res.json())
-      .then(data => {
-        if(data && data.length > 0) {
-          setProducts(data);
+    const fetchProducts = async () => {
+      try {
+        const q = query(collection(db, 'products'), limit(5));
+        const querySnapshot = await getDocs(q);
+        const productsList = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        if (productsList.length > 0) {
+          setProducts(productsList);
         }
-      })
-      .catch(err => console.error('Failed to fetch products', err));
+      } catch (err) {
+        console.error('Failed to fetch products from Firestore', err);
+      }
+    };
+
+    fetchProducts();
   }, []);
 
   // Auto carousel effect
